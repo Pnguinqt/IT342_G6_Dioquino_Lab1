@@ -2,6 +2,7 @@ package com.dugosugbo.backend.Entity;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -19,9 +20,11 @@ public class UserEntity {
     private String address;
     private String password;
 
+    private LocalDateTime timeCreated;
+
     public UserEntity(){}
 
-    public UserEntity(String firstName, String lastName, int age, String email, String contactNumber, String address, String password) {
+    public UserEntity(String firstName, String lastName, int age, String email, String contactNumber, String address, String password, LocalDateTime timeCreated) {
         super();
         this.firstName = firstName;
         this.lastName = lastName;
@@ -30,6 +33,7 @@ public class UserEntity {
         this.contactNumber = contactNumber;
         this.address = address;
         this.password = password;
+        this.timeCreated = timeCreated;
     }
 
     // Getters and Setters
@@ -78,5 +82,7 @@ public class UserEntity {
         this.address = address;
     }
 
-
+    public LocalDateTime getTimeCreated() {
+        return timeCreated;
+    }
 }
