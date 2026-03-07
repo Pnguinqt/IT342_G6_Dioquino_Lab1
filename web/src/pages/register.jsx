@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import Button from '../components/button';
 
-export default function Register({ onSwitchToLogin }) {
+export default function Register() {
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -13,22 +15,59 @@ export default function Register({ onSwitchToLogin }) {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
+  const navigate = useNavigate();
+
+  // Password requirements state
+  const [passwordRequirements, setPasswordRequirements] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    specialChar: false
+  });
+
+  const checkPasswordRequirements = (password) => {
+    setPasswordRequirements({
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /\d/.test(password),
+      specialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+
+    // Check password requirements when password field changes
+    if (name === 'password') {
+      checkPasswordRequirements(value);
+    }
+  };
+
+  const handlePasswordFocus = () => {
+    setShowPasswordRequirements(true);
+  };
+
+  const handlePasswordBlur = () => {
+    // Keep requirements visible briefly, then hide after a delay
+    setTimeout(() => setShowPasswordRequirements(false), 2000);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match!');
       return;
     }
-    
+
     // Prepare data to match backend model
     const userData = {
       firstName: formData.firstName,
@@ -39,9 +78,29 @@ export default function Register({ onSwitchToLogin }) {
       address: formData.address,
       password: formData.password
     };
-    
-    console.log('Register submitted:', userData);
-    // Add your registration logic here
+
+    try {
+      const response = await fetch('http://localhost:8080/api/users/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Registration successful!');
+        console.log('User registered with ID:', data.userId);
+        navigate('/');
+      } else {
+        alert(data.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Registration failed. Please try again.');
+    }
   };
 
   return (
@@ -49,7 +108,7 @@ export default function Register({ onSwitchToLogin }) {
       <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-4xl">
         <h1 className="text-3xl font-normal text-gray-700 text-center mb-6">Sign Up</h1>
         
-        <form onSubmit={handleSubmit}>
+        <form>
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             {/* First Name */}
             <div>
@@ -156,20 +215,53 @@ export default function Register({ onSwitchToLogin }) {
             </div>
 
             {/* Password */}
-            <div>
-              <label htmlFor="password" className="block text-gray-700 text-sm mb-1">
-                Password:
-              </label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter password"
-                className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                required
-              />
+            <div className="flex gap-4 items-start">
+              {/* Password Requirements Panel */}
+              {showPasswordRequirements && (
+                <div className="flex-shrink-0 w-64 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                  <h4 className="text-sm font-medium text-gray-800 mb-2">Password Requirements</h4>
+                  <div className="space-y-1 text-xs">
+                    <div className={`flex items-center ${passwordRequirements.length ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordRequirements.length ? '✓' : '○'}</span>
+                      8+ characters
+                    </div>
+                    <div className={`flex items-center ${passwordRequirements.uppercase ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordRequirements.uppercase ? '✓' : '○'}</span>
+                      Uppercase (A-Z)
+                    </div>
+                    <div className={`flex items-center ${passwordRequirements.lowercase ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordRequirements.lowercase ? '✓' : '○'}</span>
+                      Lowercase (a-z)
+                    </div>
+                    <div className={`flex items-center ${passwordRequirements.number ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordRequirements.number ? '✓' : '○'}</span>
+                      Number (0-9)
+                    </div>
+                    <div className={`flex items-center ${passwordRequirements.specialChar ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordRequirements.specialChar ? '✓' : '○'}</span>
+                      Special char (!@#$%^&*)
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="w-full max-w-md">
+                <label htmlFor="password" className="block text-gray-700 text-sm mb-1">
+                  Password:
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  onFocus={handlePasswordFocus}
+                  onBlur={handlePasswordBlur}
+                  placeholder="Enter password"
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  required
+                />
+              </div>
             </div>
 
             {/* Confirm Password */}
@@ -213,27 +305,20 @@ export default function Register({ onSwitchToLogin }) {
           </div>
 
           {/* Submit Button */}
-          <button
+          <Button
             type="submit"
-            className="w-full mt-6 bg-red-600 hover:bg-red-700 text-white font-medium py-2 rounded transition duration-200"
+            className="w-full mt-6"
           >
             SIGN UP
-          </button>
+          </Button>
         </form>
 
         <div className="mt-4 text-center text-sm">
           <p className="text-gray-600">
             Already have an account?{' '}
-            <a 
-              href="#" 
-              onClick={(e) => {
-                e.preventDefault();
-                onSwitchToLogin?.();
-              }}
-              className="text-red-600 hover:text-red-700"
-            >
+            <Link to="/" className="text-red-600 hover:text-red-700">
               Sign in
-            </a>
+            </Link>
           </p>
         </div>
       </div>
