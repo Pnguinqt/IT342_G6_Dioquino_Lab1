@@ -1,14 +1,41 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import Button from '../components/button';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login submitted:', { email, password });
-    // Add your login logic here
+
+    try {
+      const response = await fetch('http://localhost:8080/api/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Login successful!');
+        console.log('User data:', data.user);
+        // You can store user data in localStorage or context here
+        // localStorage.setItem('user', JSON.stringify(data.user));
+      } else {
+        alert(data.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
+    }
   };
 
   return (
@@ -59,12 +86,13 @@ export default function Login() {
             </label>
           </div>
 
-          <button
+          <Button
             type="submit"
-            className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-3 rounded transition duration-200"
+            className="w-full"
+            disabled={email === '' || password === ''}
           >
             SIGN IN
-          </button>
+          </Button>
         </form>
 
         <div className="mt-6 text-center text-sm">
@@ -80,9 +108,9 @@ export default function Login() {
           </p>
           <p className="text-gray-600 mt-2">
             Don't have an account?{' '}
-            <a href="#" className="text-red-600 hover:text-red-700">
+            <Link to="/register" className="text-red-600 hover:text-red-700">
               Sign up
-            </a>
+            </Link>
           </p>
         </div>
       </div>
